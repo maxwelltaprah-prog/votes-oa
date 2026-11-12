@@ -4,3 +4,8 @@ node_modules
 .env.local
 next-env.d.ts
 *.tsbuildinfo
+
+# Real employee data (names, dates of birth, emails) must never be committed
+employees-import*
+employees.xlsx
+*.tsv
