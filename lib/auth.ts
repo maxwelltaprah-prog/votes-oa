@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { db } from "@/lib/supabase";
+import { ConfigError, db } from "@/lib/supabase";
 
 export interface Session {
   sub: string; // employee id
@@ -14,9 +14,9 @@ const MAX_AGE_SECONDS = 60 * 60 * 8; // 8 hours
 
 function secret() {
   const s = (process.env.SESSION_SECRET || "").trim();
-  if (!s) throw new Error("SESSION_SECRET is not set.");
+  if (!s) throw new ConfigError("SESSION_SECRET is not set.");
   if (s.length < 16) {
-    throw new Error(`SESSION_SECRET is too short (${s.length} characters; it needs at least 16).`);
+    throw new ConfigError(`SESSION_SECRET is too short (${s.length} characters; it needs at least 16).`);
   }
   return new TextEncoder().encode(s);
 }

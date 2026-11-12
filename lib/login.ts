@@ -46,6 +46,19 @@ export async function authenticate(rawEmail: unknown, rawDob: unknown): Promise<
     return { ok: false, status: 500, error: "Something went wrong. Please try again." };
   }
 
+  if (!emp) {
+    // If the app can't see ANY employees, every login fails the same way. Say so instead of "incorrect".
+    const { count } = await db().from("employees").select("id", { count: "exact", head: true });
+    if (!count) {
+      return {
+        ok: false,
+        status: 500,
+        error:
+          "Setup problem: the app's database has no employees. Either the employee import has not been run, or Vercel's SUPABASE_URL points to a different Supabase project than the one you imported into. Open /api/health for details.",
+      };
+    }
+  }
+
   const ok = await bcrypt.compare(dob, emp?.dob_hash ?? DUMMY_HASH);
   if (!emp || !ok) {
     recordFailure(key);
