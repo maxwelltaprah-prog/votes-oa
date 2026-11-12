@@ -7,9 +7,9 @@ Built with Next.js (App Router), Supabase (Postgres) and deployable on Vercel.
 
 ## How it works
 
-- **Nomination form:** nominator name (read-only), Myself / Someone else, searchable nominee dropdown (all employees), business (Corporate, Grains, Pasta, Rice) and justification. The confirmation screen shows the nominee's name with the justification.
+- **Nomination form:** nominator name (read-only), Myself / Someone else, searchable nominee dropdown (all employees), business (Corporate, Grains, Pasta, Rice), function (Finance, HR/Admin, IT, MATS) and justification. The confirmation screen shows the nominee's name with the justification.
 - **Rules:** one nomination per employee (enforced in the database). Each nomination = 1 vote for the nominee.
-- **Admin:** Top 3 / 5 / 10 / All, filter by business, expand a nominee to read every justification, export to CSV. Ties share a rank, and everyone tied at the cut-off is shown.
+- **Admin:** Top 3 / 5 / 10 / All, filter by business and function, expand a nominee to read every justification, export to CSV. Ties share a rank, and everyone tied at the cut-off is shown.
 - **Managing admins:** on the admin page, search any employee and click **Make admin**, or **Remove** an existing admin. You can't remove yourself, so there is always at least one admin. Removal takes effect immediately.
 
 ## Setup
@@ -17,7 +17,7 @@ Built with Next.js (App Router), Supabase (Postgres) and deployable on Vercel.
 ### 1. Supabase
 1. Create a project at supabase.com.
 2. Open **SQL Editor**, paste the contents of `supabase/schema.sql` and run it.
-   - **Already ran an earlier version?** Run `supabase/migrations/002_phone_to_dob.sql` (renames `phone_hash` to `dob_hash`, then re-import your employee file so everyone's password becomes their date of birth), then `supabase/migrations/003_employee_admins.sql` (adds the `is_admin` flag and makes the first admins; edit the two emails in it first).
+   - **Already ran an earlier version?** Run `supabase/migrations/002_phone_to_dob.sql` (renames `phone_hash` to `dob_hash`, then re-import your employee file so everyone's password becomes their date of birth), then `supabase/migrations/003_employee_admins.sql` (adds the `is_admin` flag and makes the first admins; edit the two emails in it first), then `supabase/migrations/004_add_function.sql` (adds the Function field).
 3. From **Project Settings → API**, copy the Project URL and the **service_role** key.
 
 ### 2. Local environment

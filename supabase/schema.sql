@@ -1,6 +1,6 @@
 -- Run this once in Supabase > SQL Editor (fresh install).
 -- Already have the tables from an earlier version? Run the files in supabase/migrations/ instead
--- (002_phone_to_dob.sql, then 003_employee_admins.sql).
+-- (002_phone_to_dob.sql, 003_employee_admins.sql, then 004_add_function.sql).
 
 create extension if not exists "pgcrypto";
 
@@ -24,6 +24,8 @@ create table if not exists nominations (
   nominee_id    uuid not null references employees(id) on delete cascade,
   is_self       boolean not null,
   business      text not null check (business in ('Corporate', 'Grains', 'Pasta', 'Rice')),
+  business_function text constraint nominations_business_function_check
+                check (business_function is null or business_function in ('Finance', 'HR/Admin', 'IT', 'MATS')),
   justification text not null check (char_length(justification) between 10 and 2000),
   created_at    timestamptz not null default now(),
   constraint one_nomination_per_employee unique (nominator_id),

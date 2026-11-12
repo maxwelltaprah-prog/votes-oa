@@ -4,11 +4,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Combobox from "../components/Combobox";
-import { BUSINESSES, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constants";
+import { BUSINESSES, FUNCTIONS, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constants";
 
 interface Submitted {
   isSelf: boolean;
   business: string;
+  businessFunction?: string | null;
   justification: string;
   nomineeName: string;
 }
@@ -24,6 +25,7 @@ export default function NominatePage() {
   const [target, setTarget] = useState<"self" | "other">("self");
   const [nomineeId, setNomineeId] = useState("");
   const [business, setBusiness] = useState("");
+  const [businessFunction, setBusinessFunction] = useState("");
   const [justification, setJustification] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -59,6 +61,7 @@ export default function NominatePage() {
     setError("");
     if (target === "other" && !nomineeId) return setError("Select the nominee from the list.");
     if (!business) return setError("Select a business.");
+    if (!businessFunction) return setError("Select a function.");
     if (justification.trim().length < JUSTIFICATION_MIN)
       return setError(`Justification must be at least ${JUSTIFICATION_MIN} characters.`);
 
@@ -67,7 +70,7 @@ export default function NominatePage() {
       const res = await fetch("/api/nominate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, nomineeId, business, justification }),
+        body: JSON.stringify({ target, nomineeId, business, businessFunction, justification }),
       });
       const data = await res.json();
       if (res.status === 401) return router.replace("/");
@@ -125,6 +128,12 @@ export default function NominatePage() {
               <dt>Business</dt>
               <dd>{submitted.business}</dd>
             </div>
+            {submitted.businessFunction && (
+              <div>
+                <dt>Function</dt>
+                <dd>{submitted.businessFunction}</dd>
+              </div>
+            )}
             <div>
               <dt>Justification</dt>
               <dd className="quote">{submitted.justification}</dd>
@@ -174,6 +183,16 @@ export default function NominatePage() {
               <option value="">Select a business…</option>
               {BUSINESSES.map((b) => (
                 <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="function">Function</label>
+            <select id="function" value={businessFunction} onChange={(e) => setBusinessFunction(e.target.value)}>
+              <option value="">Select a function…</option>
+              {FUNCTIONS.map((f) => (
+                <option key={f} value={f}>{f}</option>
               ))}
             </select>
           </div>
