@@ -21,9 +21,9 @@ export default function AdminLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, dob }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Could not sign in.");
+        setError(data.error || `Server error (${res.status}). Please try again, or tell the administrator.`);
         return;
       }
       router.push("/admin");
