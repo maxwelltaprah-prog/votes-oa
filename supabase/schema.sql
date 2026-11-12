@@ -1,26 +1,20 @@
--- Run this once in Supabase > SQL Editor.
+-- Run this once in Supabase > SQL Editor (fresh install).
+-- Already have the tables from an earlier version? Run the files in supabase/migrations/ instead
+-- (002_phone_to_dob.sql, then 003_employee_admins.sql).
 
 create extension if not exists "pgcrypto";
 
 -- Employees who can log in and be nominated.
 -- The date of birth (login password) is NEVER stored in plain text: only a bcrypt hash.
--- Already ran an earlier version of this file (phone_hash)? Run supabase/migrations/002_phone_to_dob.sql instead.
+-- is_admin: admins sign in the same way as everyone else (email + date of birth) and can open /admin.
 create table if not exists employees (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
   email         text not null check (email = lower(email)),
   dob_hash      text not null,
+  is_admin      boolean not null default false,
   created_at    timestamptz not null default now(),
   constraint employees_email_key unique (email)
-);
-
--- Admin accounts (separate email + password).
-create table if not exists admins (
-  id            uuid primary key default gen_random_uuid(),
-  email         text not null check (email = lower(email)),
-  password_hash text not null,
-  created_at    timestamptz not null default now(),
-  constraint admins_email_key unique (email)
 );
 
 -- One nomination per employee (enforced by the unique constraint on nominator_id).
@@ -40,5 +34,4 @@ create index if not exists nominations_nominee_idx on nominations (nominee_id);
 -- Lock the tables down. The app talks to Supabase only from the server using the service role key,
 -- which bypasses RLS. With RLS on and no policies, the public anon key can read/write nothing.
 alter table employees   enable row level security;
-alter table admins      enable row level security;
 alter table nominations enable row level security;

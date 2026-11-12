@@ -1,8 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Combobox from "../components/Combobox";
 import { BUSINESSES, TOP_N_OPTIONS } from "@/lib/constants";
+
+interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface EmployeeRow extends AdminUser {
+  is_admin: boolean;
+}
 
 interface Result {
   rank: number;
@@ -46,6 +58,66 @@ export default function AdminPage() {
     load();
   }, [load]);
 
+  // ---- Manage admins ----
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [me, setMe] = useState("");
+  const [employees, setEmployees] = useState<EmployeeRow[]>([]);
+  const [newAdminId, setNewAdminId] = useState("");
+  const [adminMsg, setAdminMsg] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [adminBusy, setAdminBusy] = useState(false);
+
+  const loadAdmins = useCallback(async () => {
+    const [a, e] = await Promise.all([fetch("/api/admin/admins"), fetch("/api/admin/employees")]);
+    if (a.ok) {
+      const j = await a.json();
+      setAdmins(j.admins);
+      setMe(j.me);
+    }
+    if (e.ok) setEmployees((await e.json()).employees);
+  }, []);
+
+  useEffect(() => {
+    loadAdmins();
+  }, [loadAdmins]);
+
+  const adminOptions = useMemo(
+    () => employees.filter((x) => !x.is_admin).map((x) => ({ id: x.id, label: `${x.name} (${x.email})` })),
+    [employees]
+  );
+
+  async function addAdmin() {
+    if (!newAdminId) return;
+    setAdminBusy(true);
+    setAdminMsg(null);
+    const res = await fetch("/api/admin/admins", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeId: newAdminId }),
+    });
+    const json = await res.json();
+    setAdminBusy(false);
+    if (!res.ok) return setAdminMsg({ type: "error", text: json.error || "Could not add the admin." });
+    setAdminMsg({ type: "success", text: `${json.admin.name} is now an admin.` });
+    setNewAdminId("");
+    loadAdmins();
+  }
+
+  async function removeAdmin(a: AdminUser) {
+    if (!window.confirm(`Remove admin access for ${a.name}?`)) return;
+    setAdminBusy(true);
+    setAdminMsg(null);
+    const res = await fetch("/api/admin/admins", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeId: a.id }),
+    });
+    const json = await res.json();
+    setAdminBusy(false);
+    if (!res.ok) return setAdminMsg({ type: "error", text: json.error || "Could not remove the admin." });
+    setAdminMsg({ type: "success", text: `${a.name} is no longer an admin.` });
+    loadAdmins();
+  }
+
   async function logout() {
     await fetch("/api/logout", { method: "POST" });
     router.replace("/admin/login");
@@ -75,6 +147,7 @@ export default function AdminPage() {
       <header className="topbar">
         <div className="brand"><span className="brand-mark">★</span> Nomination results</div>
         <div className="who">
+          <Link className="btn ghost small" href="/nominate">My nomination</Link>
           <button className="btn ghost small" onClick={load}>Refresh</button>
           <button className="btn ghost small" onClick={logout}>Sign out</button>
         </div>
@@ -158,6 +231,54 @@ export default function AdminPage() {
         {data && top !== "all" && data.results.length > Number(top) && (
           <p className="hint">Showing more than {top} because of ties at the cut-off.</p>
         )}
+      </section>
+
+      <section className="card" aria-labelledby="admins-title">
+        <h2 id="admins-title">Admins</h2>
+        <p className="lead">Admins can see all results and justifications, and add or remove other admins.</p>
+
+        <div className="field">
+          <label htmlFor="new-admin">Add an admin</label>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 280px" }}>
+              <Combobox
+                inputId="new-admin"
+                options={adminOptions}
+                value={newAdminId}
+                onChange={setNewAdminId}
+                placeholder="Search an employee by name or email…"
+              />
+            </div>
+            <button className="btn" onClick={addAdmin} disabled={!newAdminId || adminBusy}>
+              Make admin
+            </button>
+          </div>
+        </div>
+
+        {adminMsg && (
+          <div className={`alert ${adminMsg.type}`} role={adminMsg.type === "error" ? "alert" : "status"}>
+            {adminMsg.text}
+          </div>
+        )}
+
+        <ul className="rank-list" style={{ marginTop: 16 }}>
+          {admins.map((a) => (
+            <li key={a.id} className="rank-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 4px" }}>
+              <span>
+                <strong>{a.name}</strong>
+                {a.id === me && <span className="badge" style={{ marginLeft: 8 }}>You</span>}
+                <br />
+                <small style={{ color: "var(--muted)" }}>{a.email}</small>
+              </span>
+              {a.id !== me && (
+                <button className="btn ghost small" onClick={() => removeAdmin(a)} disabled={adminBusy}>
+                  Remove
+                </button>
+              )}
+            </li>
+          ))}
+          {admins.length === 0 && <li className="empty">Loading…</li>}
+        </ul>
       </section>
     </main>
   );

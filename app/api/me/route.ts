@@ -5,7 +5,13 @@ import { db } from "@/lib/supabase";
 /** Returns the logged-in employee, plus their existing nomination (if any). */
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== "employee") {
+  if (!session) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  // Read the admin flag fresh so the "Admin dashboard" link matches current rights.
+  const { data: me } = await db().from("employees").select("is_admin").eq("id", session.sub).maybeSingle();
+  if (!me) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 
@@ -19,7 +25,7 @@ export async function GET() {
   const nomineeName = Array.isArray(nomineeRow) ? nomineeRow[0]?.name : nomineeRow?.name;
 
   return NextResponse.json({
-    user: { id: session.sub, name: session.name, email: session.email },
+    user: { id: session.sub, name: session.name, email: session.email, isAdmin: me.is_admin === true },
     nomination: nomination
       ? {
           isSelf: nomination.is_self,

@@ -1,13 +1,12 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-
-export type Role = "employee" | "admin";
+import { db } from "@/lib/supabase";
 
 export interface Session {
-  sub: string; // employee id or admin id
-  role: Role;
+  sub: string; // employee id
   name: string;
   email: string;
+  isAdmin: boolean; // as of sign-in; admin-only routes re-check the database via requireAdmin()
 }
 
 const COOKIE = "np_session";
@@ -49,18 +48,25 @@ export async function getSession(): Promise<Session | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
+    if (!payload.sub) return null;
     return {
       sub: String(payload.sub),
-      role: payload.role as Role,
       name: String(payload.name),
       email: String(payload.email),
+      isAdmin: payload.isAdmin === true,
     };
   } catch {
     return null;
   }
 }
 
-export async function requireRole(role: Role): Promise<Session | null> {
+/**
+ * For admin-only routes. Checks the signed-in employee is *currently* an admin in the database,
+ * so removing someone's admin rights takes effect immediately instead of when their cookie expires.
+ */
+export async function requireAdmin(): Promise<Session | null> {
   const s = await getSession();
-  return s && s.role === role ? s : null;
+  if (!s) return null;
+  const { data } = await db().from("employees").select("is_admin").eq("id", s.sub).maybeSingle();
+  return data?.is_admin === true ? { ...s, isAdmin: true } : null;
 }

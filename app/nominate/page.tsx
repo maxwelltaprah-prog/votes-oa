@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Combobox from "../components/Combobox";
 import { BUSINESSES, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constants";
 
@@ -15,7 +16,7 @@ interface Submitted {
 export default function NominatePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; isAdmin?: boolean } | null>(null);
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
   const [submitted, setSubmitted] = useState<Submitted | null>(null);
   const [justSubmitted, setJustSubmitted] = useState(false);
@@ -96,6 +97,7 @@ export default function NominatePage() {
         </div>
         <div className="who">
           <span>{user?.name}</span>
+          {user?.isAdmin && <Link className="btn ghost small" href="/admin">Admin dashboard</Link>}
           <button className="btn ghost small" onClick={logout}>Sign out</button>
         </div>
       </header>

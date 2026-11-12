@@ -5,7 +5,7 @@ import { db } from "@/lib/supabase";
 /** Employee names for the nominee dropdown. Only id + name are exposed (never email or date of birth). */
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== "employee") {
+  if (!session) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 

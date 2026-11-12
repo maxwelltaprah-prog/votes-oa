@@ -92,6 +92,7 @@ textarea { min-height: 140px; resize: vertical; }
   background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); border-radius: 10px;
 }
 .btn:hover { filter: brightness(1.06); }
+a.btn { text-decoration: none; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn.block { width: 100%; margin-top: 22px; }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }

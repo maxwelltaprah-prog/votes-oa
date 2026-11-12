@@ -9,7 +9,7 @@
     "template": "node scripts/make-template.mjs",
     "seed": "node --env-file=.env.local scripts/seed-sample.mjs",
     "import": "node --env-file=.env.local scripts/import-employees.mjs",
-    "create-admin": "node --env-file=.env.local scripts/create-admin.mjs"
+    "make-admin": "node --env-file=.env.local scripts/make-admin.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

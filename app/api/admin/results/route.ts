@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/supabase";
 import { BUSINESSES, TOP_N_OPTIONS } from "@/lib/constants";
 
@@ -17,7 +17,7 @@ interface Row {
 const nameOf = (x: Row["nominee"]) => (Array.isArray(x) ? x[0]?.name : x?.name) ?? "Unknown";
 
 export async function GET(req: Request) {
-  const admin = await requireRole("admin");
+  const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Not authorised." }, { status: 401 });
 
   const url = new URL(req.url);

@@ -5,7 +5,7 @@ import { BUSINESSES, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constant
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session || session.role !== "employee") {
+  if (!session) {
     return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   }
 

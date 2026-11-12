@@ -7,7 +7,7 @@ import Link from "next/link";
 export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [dob, setDob] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, dob }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -41,18 +41,27 @@ export default function AdminLoginPage() {
           <span className="brand-mark">★</span> Admin
         </div>
         <h1>Admin sign in</h1>
-        <p className="lead">View nomination results and top nominees.</p>
+        <p className="lead">Sign in with your work email and date of birth to view results and manage admins.</p>
         <form onSubmit={onSubmit} noValidate>
           <div className="field">
-            <label htmlFor="email">Admin email</label>
-            <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="email">Work email</label>
+            <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" />
           </div>
           <div className="field">
-            <label htmlFor="password">Password</label>
-            <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <label htmlFor="dob">Date of birth (password)</label>
+            <input
+              id="dob"
+              type="password"
+              inputMode="numeric"
+              autoComplete="current-password"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              placeholder="DD/MM/YYYY"
+            />
+            <p className="hint">Day first, e.g. 05/03/1990.</p>
           </div>
           {error && <div className="alert error" role="alert">{error}</div>}
-          <button className="btn block" type="submit" disabled={busy || !email || !password}>
+          <button className="btn block" type="submit" disabled={busy || !email || !dob}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
