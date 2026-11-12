@@ -7,7 +7,7 @@ import Link from "next/link";
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -19,7 +19,7 @@ export default function LoginPage() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, phone }),
+        body: JSON.stringify({ email, dob }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -41,7 +41,7 @@ export default function LoginPage() {
           <span className="brand-mark">★</span> Nomination Portal
         </div>
         <h1>Sign in</h1>
-        <p className="lead">Use your work email and your telephone number as the password.</p>
+        <p className="lead">Use your work email and your date of birth as the password.</p>
 
         <form onSubmit={onSubmit} noValidate>
           <div className="field">
@@ -57,21 +57,21 @@ export default function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="phone">Telephone number (password)</label>
+            <label htmlFor="dob">Date of birth (password)</label>
             <input
-              id="phone"
+              id="dob"
               type="password"
-              inputMode="tel"
+              inputMode="numeric"
               autoComplete="current-password"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. 08031234567"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              placeholder="DD/MM/YYYY"
               required
             />
-            <p className="hint">Spaces, dashes and +234 are fine.</p>
+            <p className="hint">Day first, e.g. 05/03/1990 (5 March 1990). You can also type 05031990.</p>
           </div>
           {error && <div className="alert error" role="alert">{error}</div>}
-          <button className="btn block" type="submit" disabled={busy || !email || !phone}>
+          <button className="btn block" type="submit" disabled={busy || !email || !dob}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>

@@ -1,9 +1,9 @@
 // Usage: npm run import -- path/to/employees.xlsx
-// Reads the "Employees" sheet (or the first sheet) with columns Name, Email, Telephone
-// and upserts them into Supabase. Telephone numbers are stored only as bcrypt hashes.
+// Reads the "Employees" sheet (or the first sheet) with columns Full Name, Date of Birth, Email ID
+// and upserts them into Supabase. Dates of birth are stored only as bcrypt hashes.
 import ExcelJS from "exceljs";
 import bcrypt from "bcryptjs";
-import { normalizePhone, supabase } from "./lib.mjs";
+import { dobFromCellValue, supabase } from "./lib.mjs";
 
 const file = process.argv[2];
 if (!file) {
@@ -18,21 +18,23 @@ const ws = wb.getWorksheet("Employees") ?? wb.worksheets[0];
 const text = (cell) => {
   const v = cell?.value;
   if (v == null) return "";
+  if (v instanceof Date) return v.toISOString();
   if (typeof v === "object") return String(v.text ?? v.result ?? v.hyperlink ?? "").trim();
   return String(v).trim();
 };
 
-// Map headers (case-insensitive) so column order doesn't matter.
+// Match headers ignoring case, spaces and punctuation, so "Full Name", "fullname" and "FULL_NAME" all work.
+const simplify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
 const headers = {};
-ws.getRow(1).eachCell((cell, col) => {
-  headers[text(cell).toLowerCase()] = col;
+ws.getRow(1).eachCell((cell, c) => {
+  headers[simplify(text(cell))] = c;
 });
 const col = (...names) => names.map((n) => headers[n]).find(Boolean);
-const nameCol = col("name", "full name", "employee name");
-const emailCol = col("email", "email address");
-const phoneCol = col("telephone", "phone", "phone number", "mobile");
-if (!nameCol || !emailCol || !phoneCol) {
-  console.error("Could not find the Name, Email and Telephone columns in row 1.");
+const nameCol = col("fullname", "name", "employeename");
+const dobCol = col("dateofbirth", "dob", "birthdate", "birthday");
+const emailCol = col("emailid", "email", "emailaddress");
+if (!nameCol || !dobCol || !emailCol) {
+  console.error("Could not find the Full Name, Date of Birth and Email ID columns in row 1.");
   process.exit(1);
 }
 
@@ -44,18 +46,16 @@ ws.eachRow((row, i) => {
   if (i === 1) return;
   const name = text(row.getCell(nameCol));
   const email = text(row.getCell(emailCol)).toLowerCase();
-  const rawPhone = text(row.getCell(phoneCol));
-  if (!name && !email && !rawPhone) return; // blank line
+  const dobRaw = row.getCell(dobCol).value;
+  const { dob, shown } = dobFromCellValue(dobRaw);
+  if (!name && !email && !shown) return; // blank line
 
-  // Excel often drops the leading zero from numbers stored as numbers. Restore it for 10-digit local numbers.
-  let phone = normalizePhone(rawPhone);
-  if (/^[789]\d{9}$/.test(phone)) phone = "0" + phone;
-
-  if (!name || !email || !phone) return problems.push(`Row ${i}: missing name, email or telephone`);
+  if (!name || !email || !shown) return problems.push(`Row ${i}: missing full name, date of birth or email`);
+  if (!dob) return problems.push(`Row ${i}: could not read date of birth "${shown}" (use DD/MM/YYYY)`);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return problems.push(`Row ${i}: invalid email "${email}"`);
   if (seen.has(email)) return problems.push(`Row ${i}: duplicate email "${email}"`);
   seen.add(email);
-  rows.push({ name, email, phone });
+  rows.push({ name, email, dob });
 });
 
 if (problems.length) {
@@ -68,7 +68,7 @@ if (rows.length === 0) {
 }
 
 const records = await Promise.all(
-  rows.map(async (r) => ({ name: r.name, email: r.email, phone_hash: await bcrypt.hash(r.phone, 10) }))
+  rows.map(async (r) => ({ name: r.name, email: r.email, dob_hash: await bcrypt.hash(r.dob, 10) }))
 );
 
 const db = supabase();
@@ -77,7 +77,7 @@ for (let i = 0; i < records.length; i += BATCH) {
   const { error } = await db.from("employees").upsert(records.slice(i, i + BATCH), { onConflict: "email" });
   if (error) {
     console.error("Import failed:", error.message);
-    console.error("Tip: if this mentions a constraint on email, make sure supabase/schema.sql has been run.");
+    console.error('Tip: if this mentions "dob_hash", run supabase/migrations/002_phone_to_dob.sql in the Supabase SQL Editor first.');
     process.exit(1);
   }
 }

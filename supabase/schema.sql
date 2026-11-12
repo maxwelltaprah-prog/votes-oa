@@ -3,12 +3,13 @@
 create extension if not exists "pgcrypto";
 
 -- Employees who can log in and be nominated.
--- The telephone number is NEVER stored in plain text: only a bcrypt hash (used as the login password).
+-- The date of birth (login password) is NEVER stored in plain text: only a bcrypt hash.
+-- Already ran an earlier version of this file (phone_hash)? Run supabase/migrations/002_phone_to_dob.sql instead.
 create table if not exists employees (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
   email         text not null check (email = lower(email)),
-  phone_hash    text not null,
+  dob_hash      text not null,
   created_at    timestamptz not null default now(),
   constraint employees_email_key unique (email)
 );
