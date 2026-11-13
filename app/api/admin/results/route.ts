@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/supabase";
-import { BUSINESSES, FUNCTIONS, TOP_N_OPTIONS } from "@/lib/constants";
+import { BUSINESSES, DEPARTMENTS, TOP_N_OPTIONS } from "@/lib/constants";
 
 interface Row {
   nominee_id: string;
   nominator_id: string;
   is_self: boolean;
   business: string;
-  business_function: string | null;
+  department: string | null;
   justification: string;
   created_at: string;
   nominee: { name: string } | { name: string }[] | null;
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const topParam = url.searchParams.get("top") || "10";
   const businessParam = url.searchParams.get("business") || "All";
-  const functionParam = url.searchParams.get("function") || "All";
+  const departmentParam = url.searchParams.get("department") || "All";
 
   const top = topParam === "all" ? Infinity : Number(topParam);
   if (topParam !== "all" && !(TOP_N_OPTIONS as readonly number[]).includes(top)) {
@@ -33,25 +33,25 @@ export async function GET(req: Request) {
   if (businessParam !== "All" && !(BUSINESSES as readonly string[]).includes(businessParam)) {
     return NextResponse.json({ error: "Unknown business." }, { status: 400 });
   }
-  if (functionParam !== "All" && !(FUNCTIONS as readonly string[]).includes(functionParam)) {
-    return NextResponse.json({ error: "Unknown function." }, { status: 400 });
+  if (departmentParam !== "All" && !(DEPARTMENTS as readonly string[]).includes(departmentParam)) {
+    return NextResponse.json({ error: "Unknown department." }, { status: 400 });
   }
 
   let q = db()
     .from("nominations")
     .select(
-      "nominee_id, nominator_id, is_self, business, business_function, justification, created_at, nominee:employees!nominations_nominee_id_fkey(name), nominator:employees!nominations_nominator_id_fkey(name)"
+      "nominee_id, nominator_id, is_self, business, department, justification, created_at, nominee:employees!nominations_nominee_id_fkey(name), nominator:employees!nominations_nominator_id_fkey(name)"
     )
     .order("created_at", { ascending: false })
     .range(0, 49999);
   if (businessParam !== "All") q = q.eq("business", businessParam);
-  if (functionParam !== "All") q = q.eq("business_function", functionParam);
+  if (departmentParam !== "All") q = q.eq("department", departmentParam);
 
   const { data, error } = await q;
   if (error) {
     console.error("[api/admin/results]", error);
-    const msg = /business_function/.test(error.message)
-      ? "Setup problem: the Function column is missing. Run supabase/migrations/004_add_function.sql in the Supabase SQL Editor."
+    const msg = /department/.test(error.message)
+      ? "Setup problem: the Department column is missing. Run supabase/migrations/005_department.sql in the Supabase SQL Editor."
       : "Could not load results.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -66,12 +66,12 @@ export async function GET(req: Request) {
       votes: number;
       selfVotes: number;
       byBusiness: Record<string, number>;
-      byFunction: Record<string, number>;
+      byDepartment: Record<string, number>;
       nominations: {
         nominator: string;
         isSelf: boolean;
         business: string;
-        businessFunction: string | null;
+        department: string | null;
         justification: string;
         createdAt: string;
       }[];
@@ -87,7 +87,7 @@ export async function GET(req: Request) {
         votes: 0,
         selfVotes: 0,
         byBusiness: Object.fromEntries(BUSINESSES.map((b) => [b, 0])),
-        byFunction: Object.fromEntries(FUNCTIONS.map((f) => [f, 0])),
+        byDepartment: Object.fromEntries(DEPARTMENTS.map((d) => [d, 0])),
         nominations: [],
       };
       byNominee.set(r.nominee_id, e);
@@ -95,12 +95,12 @@ export async function GET(req: Request) {
     e.votes += 1;
     if (r.is_self) e.selfVotes += 1;
     e.byBusiness[r.business] = (e.byBusiness[r.business] ?? 0) + 1;
-    if (r.business_function) e.byFunction[r.business_function] = (e.byFunction[r.business_function] ?? 0) + 1;
+    if (r.department) e.byDepartment[r.department] = (e.byDepartment[r.department] ?? 0) + 1;
     e.nominations.push({
       nominator: r.is_self ? nameOf(r.nominee) : nameOf(r.nominator),
       isSelf: r.is_self,
       business: r.business,
-      businessFunction: r.business_function,
+      department: r.department,
       justification: r.justification,
       createdAt: r.created_at,
     });
@@ -123,7 +123,7 @@ export async function GET(req: Request) {
   const { count: employeeCount } = await db().from("employees").select("id", { count: "exact", head: true });
 
   return NextResponse.json({
-    filters: { top: topParam, business: businessParam, function: functionParam },
+    filters: { top: topParam, business: businessParam, department: departmentParam },
     summary: {
       totalNominations: rows.length,
       totalNominees: byNominee.size,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/supabase";
-import { BUSINESSES, FUNCTIONS, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constants";
+import { BUSINESSES, DEPARTMENTS, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constants";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const target = body.target === "self" || body.target === "other" ? body.target : null;
   const business = String(body.business || "");
-  const businessFunction = String(body.businessFunction || "");
+  const department = String(body.department || "");
   const justification = String(body.justification || "").trim();
   const nomineeId = String(body.nomineeId || "");
 
@@ -22,8 +22,8 @@ export async function POST(req: Request) {
   if (!(BUSINESSES as readonly string[]).includes(business)) {
     return NextResponse.json({ error: "Select a business." }, { status: 400 });
   }
-  if (!(FUNCTIONS as readonly string[]).includes(businessFunction)) {
-    return NextResponse.json({ error: "Select a function." }, { status: 400 });
+  if (!(DEPARTMENTS as readonly string[]).includes(department)) {
+    return NextResponse.json({ error: "Select a department." }, { status: 400 });
   }
   if (justification.length < JUSTIFICATION_MIN) {
     return NextResponse.json(
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     nominee_id: finalNomineeId,
     is_self: target === "self",
     business,
-    business_function: businessFunction,
+    department,
     justification,
   });
 
@@ -70,10 +70,10 @@ export async function POST(req: Request) {
     if (error.code === "23505") {
       return NextResponse.json({ error: "You have already submitted your nomination." }, { status: 409 });
     }
-    if (/business_function/.test(error.message)) {
+    if (/department/.test(error.message)) {
       console.error("[api/nominate]", error);
       return NextResponse.json(
-        { error: "Setup problem: the Function column is missing. An administrator must run supabase/migrations/004_add_function.sql." },
+        { error: "Setup problem: the Department column is missing. An administrator must run supabase/migrations/005_department.sql." },
         { status: 500 }
       );
     }
@@ -82,6 +82,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    nomination: { isSelf: target === "self", business, businessFunction, justification, nomineeName },
+    nomination: { isSelf: target === "self", business, department, justification, nomineeName },
   });
 }

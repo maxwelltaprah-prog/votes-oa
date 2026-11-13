@@ -4,12 +4,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Combobox from "../components/Combobox";
-import { BUSINESSES, FUNCTIONS, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constants";
+import { BUSINESSES, DEPARTMENTS, JUSTIFICATION_MAX, JUSTIFICATION_MIN } from "@/lib/constants";
 
 interface Submitted {
   isSelf: boolean;
   business: string;
-  businessFunction?: string | null;
+  department?: string | null;
   justification: string;
   nomineeName: string;
 }
@@ -25,7 +25,7 @@ export default function NominatePage() {
   const [target, setTarget] = useState<"self" | "other">("self");
   const [nomineeId, setNomineeId] = useState("");
   const [business, setBusiness] = useState("");
-  const [businessFunction, setBusinessFunction] = useState("");
+  const [department, setDepartment] = useState("");
   const [justification, setJustification] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -61,7 +61,7 @@ export default function NominatePage() {
     setError("");
     if (target === "other" && !nomineeId) return setError("Select the nominee from the list.");
     if (!business) return setError("Select a business.");
-    if (!businessFunction) return setError("Select a function.");
+    if (!department) return setError("Select a department.");
     if (justification.trim().length < JUSTIFICATION_MIN)
       return setError(`Justification must be at least ${JUSTIFICATION_MIN} characters.`);
 
@@ -70,7 +70,7 @@ export default function NominatePage() {
       const res = await fetch("/api/nominate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, nomineeId, business, businessFunction, justification }),
+        body: JSON.stringify({ target, nomineeId, business, department, justification }),
       });
       const data = await res.json();
       if (res.status === 401) return router.replace("/");
@@ -128,10 +128,10 @@ export default function NominatePage() {
               <dt>Business</dt>
               <dd>{submitted.business}</dd>
             </div>
-            {submitted.businessFunction && (
+            {submitted.department && (
               <div>
-                <dt>Function</dt>
-                <dd>{submitted.businessFunction}</dd>
+                <dt>Department</dt>
+                <dd>{submitted.department}</dd>
               </div>
             )}
             <div>
@@ -142,8 +142,12 @@ export default function NominatePage() {
         </section>
       ) : (
         <form className="card" onSubmit={onSubmit} noValidate>
-          <h1>Make a nomination</h1>
-          <p className="lead">Nominate yourself or a colleague, and tell us why.</p>
+          <h1>Safety Award Nomination</h1>
+          <p className="lead">
+            The Safety Award is to recognize non-safety employees who proactively demonstrate safety leadership,
+            identify and reduce risks, comply with safety standards, engage others, and deliver measurable,
+            sustainable improvements that prevent incidents.
+          </p>
 
           <div className="field">
             <label htmlFor="nominator">Your name</label>
@@ -188,11 +192,11 @@ export default function NominatePage() {
           </div>
 
           <div className="field">
-            <label htmlFor="function">Function</label>
-            <select id="function" value={businessFunction} onChange={(e) => setBusinessFunction(e.target.value)}>
-              <option value="">Select a function…</option>
-              {FUNCTIONS.map((f) => (
-                <option key={f} value={f}>{f}</option>
+            <label htmlFor="department">Department</label>
+            <select id="department" value={department} onChange={(e) => setDepartment(e.target.value)}>
+              <option value="">Select a department…</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>{d}</option>
               ))}
             </select>
           </div>

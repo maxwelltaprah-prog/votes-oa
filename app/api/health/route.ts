@@ -38,8 +38,8 @@ export async function GET() {
       database.admins = admins.error ? `error: ${admins.error.message}` : admins.count ?? 0;
       const pw = await c.from("employees").select("dob_hash").limit(1);
       database.dob_hash_column = pw.error ? `error: ${pw.error.message}` : "ok";
-      const fnCol = await c.from("nominations").select("business_function").limit(1);
-      database.function_column = fnCol.error ? "MISSING: run supabase/migrations/004_add_function.sql" : "ok";
+      const departmentCol = await c.from("nominations").select("department").limit(1);
+      database.department_column = departmentCol.error ? "MISSING: run supabase/migrations/005_department.sql" : "ok";
       const noms = await c.from("nominations").select("id", { count: "exact", head: true });
       database.nominations = noms.error ? `error: ${noms.error.message}` : noms.count ?? 0;
     }
@@ -54,7 +54,7 @@ export async function GET() {
     typeof database.employees === "number" &&
     (database.employees as number) > 0 &&
     database.dob_hash_column === "ok" &&
-    database.function_column === "ok" &&
+    database.department_column === "ok" &&
     typeof database.admins === "number";
 
   return NextResponse.json({ ok, env, database }, { headers: { "Cache-Control": "no-store" } });

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Combobox from "../components/Combobox";
-import { BUSINESSES, FUNCTIONS, TOP_N_OPTIONS } from "@/lib/constants";
+import { BUSINESSES, DEPARTMENTS, TOP_N_OPTIONS } from "@/lib/constants";
 
 interface AdminUser {
   id: string;
@@ -23,12 +23,12 @@ interface Result {
   votes: number;
   selfVotes: number;
   byBusiness: Record<string, number>;
-  byFunction: Record<string, number>;
+  byDepartment: Record<string, number>;
   nominations: {
     nominator: string;
     isSelf: boolean;
     business: string;
-    businessFunction: string | null;
+    department: string | null;
     justification: string;
     createdAt: string;
   }[];
@@ -43,7 +43,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [top, setTop] = useState<string>("10");
   const [business, setBusiness] = useState<string>("All");
-  const [fn, setFn] = useState<string>("All");
+  const [department, setDepartment] = useState<string>("All");
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     const res = await fetch(
-      `/api/admin/results?top=${top}&business=${encodeURIComponent(business)}&function=${encodeURIComponent(fn)}`
+      `/api/admin/results?top=${top}&business=${encodeURIComponent(business)}&department=${encodeURIComponent(department)}`
     );
     if (res.status === 401) {
       router.replace("/admin/login");
@@ -63,7 +63,7 @@ export default function AdminPage() {
     if (!res.ok) setError(json.error || "Could not load results.");
     else setData(json);
     setLoading(false);
-  }, [top, business, fn, router]);
+  }, [top, business, department, router]);
 
   useEffect(() => {
     load();
@@ -138,19 +138,19 @@ export default function AdminPage() {
     if (!data) return;
     const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
     const lines = [
-      ["Rank", "Nominee", "Total votes", "Self votes", "Nominated by", "Business", "Function", "Justification"].map(esc).join(","),
+      ["Rank", "Nominee", "Total votes", "Self votes", "Nominated by", "Business", "Department", "Justification"].map(esc).join(","),
     ];
     for (const r of data.results) {
       for (const n of r.nominations) {
         lines.push(
-          [r.rank, r.name, r.votes, r.selfVotes, n.nominator, n.business, n.businessFunction ?? "", n.justification].map(esc).join(",")
+          [r.rank, r.name, r.votes, r.selfVotes, n.nominator, n.business, n.department ?? "", n.justification].map(esc).join(",")
         );
       }
     }
     const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `nominations-top-${top}-${business}-${fn}.csv`.replace(/\//g, "-");
+    a.download = `nominations-top-${top}-${business}-${department}.csv`.replace(/\//g, "-");
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -170,7 +170,7 @@ export default function AdminPage() {
 
       {data && (
         <div className="stats">
-          <div className="stat"><div className="n">{data.summary.totalNominations}</div><div className="l">Nominations{[business, fn].filter((x) => x !== "All").length ? ` (${[business, fn].filter((x) => x !== "All").join(", ")})` : ""}</div></div>
+          <div className="stat"><div className="n">{data.summary.totalNominations}</div><div className="l">Nominations{[business, department].filter((x) => x !== "All").length ? ` (${[business, department].filter((x) => x !== "All").join(", ")})` : ""}</div></div>
           <div className="stat"><div className="n">{data.summary.totalNominees}</div><div className="l">Unique nominees</div></div>
           <div className="stat"><div className="n">{data.summary.selfNominations}</div><div className="l">Self-nominations</div></div>
           <div className="stat"><div className="n">{data.summary.totalEmployees}</div><div className="l">Employees</div></div>
@@ -196,10 +196,10 @@ export default function AdminPage() {
             </select>
           </div>
           <div className="group">
-            <span>Function</span>
-            <select value={fn} onChange={(e) => setFn(e.target.value)} aria-label="Filter by function">
-              <option value="All">All functions</option>
-              {FUNCTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+            <span>Department</span>
+            <select value={department} onChange={(e) => setDepartment(e.target.value)} aria-label="Filter by department">
+              <option value="All">All departments</option>
+              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
           <button className="btn ghost small" onClick={exportCsv} disabled={!data || data.results.length === 0}>
@@ -232,8 +232,8 @@ export default function AdminPage() {
                         {BUSINESSES.filter((b) => r.byBusiness[b] > 0).map((b) => (
                           <span key={b} className="badge">{b}: {r.byBusiness[b]}</span>
                         ))}
-                        {FUNCTIONS.filter((f) => r.byFunction?.[f] > 0).map((f) => (
-                          <span key={f} className="badge">{f}: {r.byFunction[f]}</span>
+                        {DEPARTMENTS.filter((d) => r.byDepartment?.[d] > 0).map((d) => (
+                          <span key={d} className="badge">{d}: {r.byDepartment[d]}</span>
                         ))}
                         {r.selfVotes > 0 && <span>Includes {r.selfVotes} self-nomination{r.selfVotes > 1 ? "s" : ""}</span>}
                       </div>
@@ -241,7 +241,7 @@ export default function AdminPage() {
                         <div key={i}>
                           <div className="meta">
                             <strong>{n.isSelf ? "Self-nomination" : `Nominated by ${n.nominator}`}</strong>
-                            <span>· {n.business}{n.businessFunction ? ` · ${n.businessFunction}` : ""}</span>
+                            <span>· {n.business}{n.department ? ` · ${n.department}` : ""}</span>
                           </div>
                           <div className="quote">{n.justification}</div>
                         </div>

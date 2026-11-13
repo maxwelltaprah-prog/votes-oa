@@ -17,7 +17,7 @@ export async function GET() {
 
   const { data: nomination } = await db()
     .from("nominations")
-    .select("is_self, business, business_function, justification, created_at, nominee:employees!nominations_nominee_id_fkey(name)")
+    .select("is_self, business, department, justification, created_at, nominee:employees!nominations_nominee_id_fkey(name)")
     .eq("nominator_id", session.sub)
     .maybeSingle();
 
@@ -30,7 +30,7 @@ export async function GET() {
       ? {
           isSelf: nomination.is_self,
           business: nomination.business,
-          businessFunction: nomination.business_function ?? null,
+          department: nomination.department ?? null,
           justification: nomination.justification,
           createdAt: nomination.created_at,
           nomineeName: nomineeName ?? session.name,
